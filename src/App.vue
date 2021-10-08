@@ -29,17 +29,20 @@
 		</div>
 
 		<transition name="bounce" >
-			<div v-if="selected" class="mx-5 d-flex flex-column shadow-lg" style="min-width:50vw; max-width:800px; max-height:600px; overflow:hidden; border-radius:.75em;" >
-				<div class="d-flex shadow-lg" style="background:#181818; padding: .85em;">
-					<div class="mx-1 rounded-circle bg-danger" style="height:1em;width:1em" ></div>
-					<div class="mx-1 rounded-circle bg-warning" style="height:1em;width:1em" ></div>
-					<div class="mx-1 rounded-circle bg-success" style="height:1em;width:1em" ></div>
+			<div v-if="selected" :class="{'maximized': maximized}" class="terminal mx-5 d-flex flex-column shadow" style="min-width:50vw; max-width:800px; max-height:600px; overflow:hidden; border-radius:.75em;" >
+				<div class="d-flex shadow" style="background:#181818; padding: .85em;">
+					<div @click="changeSelected(null)" class="mx-1 rounded-circle bg-danger d-flex" style="height:1em;width:1em" >
+						<i class="fa fa-close font-weight-bold text-white mx-auto my-auto" style="font-size:.5em;"></i>
+					</div>
+					<div @click="maximized=!maximized" class="mx-1 rounded-circle bg-success d-flex" style="height:1em;width:1em" >
+						<i class="fa fa-expand font-weight-bold text-white mx-auto my-auto" style="font-size:.5em;"></i>
+					</div>
 					<span class="ml-auto mr-3 my-auto text-white" > Service log - <span class="font-weight-bold"> {{ toTitleCase(meta[selected].name) }} </span> </span>
 				</div>
 				<pre
 					id="console"
 					style="min-width:50vw; max-width:800px; max-height:600px; overflow:auto; list-style:none; background:#1c1c1c;"
-					class="p-5 text-white text-left d-block" >
+					class="p-5 m-0 text-white text-left d-block" >
 				</pre>
 			</div>
 		</transition>
@@ -49,6 +52,8 @@
 
 <script>
 /* eslint-disable */ 
+import Convert from 'ansi-to-html';
+import axios from 'axios';
 export default {
 	name: 'App',
 	data: ()=>{
@@ -56,6 +61,8 @@ export default {
 			host: 'localhost:3000',
 			meta: null,
 			selected: null,
+			parser: new Convert(),
+			maximized: false,
 		}
 	},
 	mounted() {
@@ -63,52 +70,137 @@ export default {
 	},
 	methods: {
 		start() {
+			// console.log("Starting client...");
+			// this.socket = io.connect(this.host+'/containers');
+
+			// this.socket.on('connect', ()=>{
+			// 	console.log('Connected to log server...');
+			// 	this.socket.emit('meta', {});
+			// });
+
+			// this.socket.on("meta", (meta)=>{
+			// 	console.log("Meta received: ", meta);
+			// 	this.meta = meta;
+			// });
+			axios
+			.get("http://localhost:3000/meta")
+			.then(res => {
+				console.log(res.data);
+				this.meta = res.data;
+			})
+			.catch(err => {
+				console.log("Error: ", err);
+			})
+		},
+		subscribe() {
 			console.log("Starting client...");
-			this.socket = io.connect(this.host+'/containers');
+			this.socket = io.connect(this.host+'/'+this.selected);
 
 			this.socket.on('connect', ()=>{
 				console.log('Connected to log server...');
-				this.socket.emit('meta', {});
 			});
 
-			this.socket.on("meta", (meta)=>{
-				console.log("Meta received: ", meta);
-				this.meta = meta;
-			});
-		},
-		subscribe() {
-			this.socket.emit('subscribe', {containerID: this.selected});
-			
-			this.socket.on("init", (data) => {
+			this.socket.on(this.selected+"-init", (data) => {
+				document.getElementById('console').innerHTML = "";
 				data.forEach(line => {
-					document.getElementById('console').append(JSON.parse(line.replace(/(\r\n|\n|\r)/gm, "")).log);
+					var item = document.createElement('li');
+					var log;
+					try {
+						log = JSON.parse(line).log;
+					}catch (err) {
+						log = line;
+					}
+					item.innerHTML = this.parser.toHtml(log);
+					document.getElementById('console').appendChild(item);
 					document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
 				});
 			});
 
-			this.socket.on("line", (line) => {
+			this.socket.on(this.selected+"-line", (line) => {
 				var item = document.createElement('li');
-				item.innerText = line;
-				item.style.color = '#fff';
+				item.innerHTML = this.parser.toHtml(line);
 				document.getElementById('console').appendChild(item);
 				document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
 			});
+
+			this.socket.on(this.selected+"-error", (err) => {
+				var item = document.createElement('li');
+				item.innerHTML = this.parser.toHtml(err);
+				document.getElementById('console').appendChild(item);
+				document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+				this.socket.emit('unsubscribe');
+			});
 		},
+		// subscribe() {
+			// this.socket.emit('subscribe', {containerID: this.selected});
+			
+			// this.socket.on(this.selected+"-init", (data) => {
+			// 	document.getElementById('console').innerHTML = "";
+			// 	data.forEach(line => {
+			// 		var item = document.createElement('li');
+			// 		var log;
+			// 		try {
+			// 			log = JSON.parse(line).log;
+			// 		}catch (err) {
+			// 			log = line;
+			// 		}
+			// 		item.innerHTML = this.parser.toHtml(log);
+			// 		document.getElementById('console').appendChild(item);
+			// 		document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+			// 	});
+			// });
+
+			// this.socket.on(this.selected+"-line", (line) => {
+			// 	var item = document.createElement('li');
+			// 	item.innerHTML = this.parser.toHtml(line);
+			// 	document.getElementById('console').appendChild(item);
+			// 	document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+			// });
+
+			// this.socket.on(this.selected+"-error", (err) => {
+			// 	var item = document.createElement('li');
+			// 	item.innerHTML = this.parser.toHtml(err);
+			// 	document.getElementById('console').appendChild(item);
+			// 	document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+			// 	this.socket.emit('unsubscribe', {containerID: this.selected});
+			// });
+		// },
+		// changeSelected(key) {
+			// if(this.selected) {
+			// 	this.socket.emit('unsubscribe', {containerID: this.selected});
+			// 	this.selected = null;
+			// 	this.socket.on('unsubscribed', (containerID) => {
+			// 		console.log("Unsubscribed: ", containerID);
+			// 		this.socket.removeAllListeners(containerID+'-init');
+			// 		this.socket.removeAllListeners(containerID+'-line');
+			// 		if(this.selected != key) {
+			// 			this.selected = key;
+			// 			this.subscribe();
+			// 		} else {
+			// 			this.selected = null;
+			// 		}
+			// 	});
+			// }else {
+			// 	this.selected = key;
+			// 	this.subscribe();
+			// }
+        // },
 		changeSelected(key) {
-			this.socket.emit('unsubscribe');
-			this.socket.disconnect();
-			this.start();
-			setTimeout(()=>{
-				if(this.selected != key) {
-					this.selected = null;
-					setTimeout(() => {
-						this.selected = key;
+			if(this.selected) {
+				let selected = this.selected;
+				this.selected = null;
+				this.socket.emit('unsubscribe', {containerID: selected});
+				this.socket.removeAllListeners(selected+'-init');
+				this.socket.removeAllListeners(selected+'-line');
+				setTimeout(()=>{
+					this.selected = key;
+					if(this.selected)
 						this.subscribe();
-					}, 50);
-				} else {
-					this.selected = null;
-				}
-			}, 500);
+				}, 50);
+			}else {
+				this.selected = key;
+				this.subscribe();
+			}
         },
 		toTitleCase(str) {
 			return str.replace(/\w\S*/g, (txt) => { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase() });
@@ -253,5 +345,17 @@ html {
 }
 .bounce-modal.show {
     animation: bounce-in .5s;
+}
+.maximized * {
+	max-width: unset !important; 
+	max-height: unset !important;
+}
+.maximized {
+	position: fixed;
+	z-index: 10;
+	max-width: unset !important; 
+	max-height: unset !important;
+	width: 70vw !important;
+	height: 70vh !important;
 }
 </style>
