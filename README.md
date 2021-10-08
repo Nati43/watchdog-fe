@@ -1,4 +1,4 @@
-# boxes
+# docker-logs-frontend
 
 ## Project setup
 ```
