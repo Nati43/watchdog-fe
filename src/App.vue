@@ -2,10 +2,10 @@
 	<div id="app" class="d-flex align-items-center justify-content-center">
 
         <div 
-			class="section d-flex flex-column align-items-center justify-content-center flex-wrap" 
+			class="d-flex flex-column align-items-center justify-content-center flex-wrap" 
 			style="max-width: 1300px;" >
 
-            <p class="header-1 text-muted py-0 px-0 mb-4"> Containers </p>
+            <p class="header-1 text-primary py-0 px-0 mb-4"> Containers </p>
 		
 			<b-list-group
 				v-if="meta" 
@@ -37,7 +37,10 @@
 					<div @click="maximized=!maximized" class="mx-1 rounded-circle bg-success d-flex" style="height:1em;width:1em" >
 						<i class="fa fa-expand font-weight-bold text-white mx-auto my-auto" style="font-size:.5em;"></i>
 					</div>
-					<span class="ml-auto mr-3 my-auto text-white" > Service log - <span class="font-weight-bold"> {{ toTitleCase(meta[selected].name) }} </span> </span>
+
+					<span v-if="removing" class="ml-3 my-auto beat"> Container removed. Closing in ... {{ removeCounter }} </span>
+					
+					<span class="ml-auto mr-3 my-auto text-white" > Service log - <span class="font-weight-bold" v-if="meta[selected]"> {{ toTitleCase(meta[selected].name) }} </span> </span>
 				</div>
 				<pre
 					id="console"
@@ -53,16 +56,18 @@
 <script>
 /* eslint-disable */ 
 import Convert from 'ansi-to-html';
-import axios from 'axios';
 export default {
 	name: 'App',
 	data: ()=>{
 		return {
 			host: 'localhost:3000',
+			metaSocket: null,
 			meta: null,
 			selected: null,
 			parser: new Convert(),
 			maximized: false,
+			removeCounter: 5,
+			removing: null,
 		}
 	},
 	mounted() {
@@ -70,27 +75,46 @@ export default {
 	},
 	methods: {
 		start() {
-			// console.log("Starting client...");
-			// this.socket = io.connect(this.host+'/containers');
+			console.log("Starting client...");
+			this.metaSocket = io.connect(this.host+'/meta');
 
-			// this.socket.on('connect', ()=>{
-			// 	console.log('Connected to log server...');
-			// 	this.socket.emit('meta', {});
-			// });
+			this.metaSocket.on('connect', ()=>{
+				console.log('Connected to log server...');
+			});
 
-			// this.socket.on("meta", (meta)=>{
-			// 	console.log("Meta received: ", meta);
-			// 	this.meta = meta;
-			// });
-			axios
-			.get("http://localhost:3000/meta")
-			.then(res => {
-				console.log(res.data);
-				this.meta = res.data;
-			})
-			.catch(err => {
-				console.log("Error: ", err);
-			})
+			this.metaSocket.on("meta", (meta)=>{
+				console.log("Meta received: ", meta);
+				this.meta = meta;
+			});
+
+			this.metaSocket.on("added", (container)=> {
+				console.log("Added: ", container);
+				this.meta[container.id] = container;
+				this.$forceUpdate();
+			});
+
+			this.metaSocket.on("removed", (containerID)=> {
+				console.log("Removed: ", containerID);
+				if(this.socket) {
+					this.socket.emit('unsubscribe');
+					this.socket.removeAllListeners(containerID+'-init');
+					this.socket.removeAllListeners(containerID+'-line');
+				}
+				if(this.selected == containerID) {
+					var handle = setInterval(() => {
+						this.removing = this.selected;
+						this.removeCounter--;
+						if(this.removeCounter == 0) {
+							clearInterval(handle);
+							this.removeCounter = 5;
+							this.removing = null;
+							this.selected = null;
+						}
+					}, 1000);
+				}
+				delete this.meta[containerID];
+				this.$forceUpdate();
+			});
 		},
 		subscribe() {
 			console.log("Starting client...");
@@ -131,60 +155,6 @@ export default {
 				this.socket.emit('unsubscribe');
 			});
 		},
-		// subscribe() {
-			// this.socket.emit('subscribe', {containerID: this.selected});
-			
-			// this.socket.on(this.selected+"-init", (data) => {
-			// 	document.getElementById('console').innerHTML = "";
-			// 	data.forEach(line => {
-			// 		var item = document.createElement('li');
-			// 		var log;
-			// 		try {
-			// 			log = JSON.parse(line).log;
-			// 		}catch (err) {
-			// 			log = line;
-			// 		}
-			// 		item.innerHTML = this.parser.toHtml(log);
-			// 		document.getElementById('console').appendChild(item);
-			// 		document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
-			// 	});
-			// });
-
-			// this.socket.on(this.selected+"-line", (line) => {
-			// 	var item = document.createElement('li');
-			// 	item.innerHTML = this.parser.toHtml(line);
-			// 	document.getElementById('console').appendChild(item);
-			// 	document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
-			// });
-
-			// this.socket.on(this.selected+"-error", (err) => {
-			// 	var item = document.createElement('li');
-			// 	item.innerHTML = this.parser.toHtml(err);
-			// 	document.getElementById('console').appendChild(item);
-			// 	document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
-			// 	this.socket.emit('unsubscribe', {containerID: this.selected});
-			// });
-		// },
-		// changeSelected(key) {
-			// if(this.selected) {
-			// 	this.socket.emit('unsubscribe', {containerID: this.selected});
-			// 	this.selected = null;
-			// 	this.socket.on('unsubscribed', (containerID) => {
-			// 		console.log("Unsubscribed: ", containerID);
-			// 		this.socket.removeAllListeners(containerID+'-init');
-			// 		this.socket.removeAllListeners(containerID+'-line');
-			// 		if(this.selected != key) {
-			// 			this.selected = key;
-			// 			this.subscribe();
-			// 		} else {
-			// 			this.selected = null;
-			// 		}
-			// 	});
-			// }else {
-			// 	this.selected = key;
-			// 	this.subscribe();
-			// }
-        // },
 		changeSelected(key) {
 			if(this.selected) {
 				let selected = this.selected;
@@ -213,7 +183,6 @@ export default {
 html,
 body {
 	background-color: #121212;
-	/* color: #1F1B24 !important; */
 }
 #app {
 	font-family: Helvetica, Arial, sans-serif;
@@ -222,77 +191,6 @@ body {
 	text-align: center;
 	color: #2c3e50;
 	margin-top: 60px;
-}
-.title {
-	font-family: 'Mitr', sans-serif;
-}
-</style>
-<style>
-/* body,
-html {
-  width: 100%;
-}
-#app {
-  font-family: 'Roboto', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  font-size: 1.125em;
-} */
-.section {
-  min-height: 80vh;
-}
-.leaf-card {
-  border-radius: 1.75em;
-  border-top-right-radius: .5em;
-  border-bottom-left-radius: .5em;
-  transition: all .25s;
-}
-.leaf-card:hover {
-  transform: translateY(-.5em);
-}
-</style>
-
-<style>
-/* contact us button  */
-.rounded-custom-5 {
-    border-radius: 5em;
-}
-.rounded-custom-1 {
-    border-radius: 1em;
-}
-.outline-primary {
-    color: #5874c9;
-    border: 2px solid #5874c9;
-}
-.outline-primary:hover {
-    color: white;
-    background: #5874c9;
-}
-.outline-light {
-    color: white;
-    border: 2px solid white;
-}
-.outline-light:hover {
-    color: #5874c9;
-    background-color: white;
-}
-.contact-btn {
-    height: 45px;
-    width: 130px;
-    color: #5874c9;
-    border-radius: 5em;
-    align-self: flex-end;
-    border: 2px solid #5874c9;
-}
-.contact-btn:hover {
-    color: white;
-    background: #5874c9;
-}
-.contact-bar {
-    max-width: 600px;
-    width: 100%;
 }
 </style>
 <style>
@@ -357,5 +255,22 @@ html {
 	max-height: unset !important;
 	width: 70vw !important;
 	height: 70vh !important;
+}
+@keyframes heartbeat {
+  0% {
+	color: white;
+	transform: scale(.99);
+  }
+  50% {
+	color: tomato;
+    transform: scale(1.01);
+  }
+  100% {
+	color: white;
+    transform: scale(.99);
+  }
+}
+.beat {
+    animation: heartbeat .75s infinite;
 }
 </style>
