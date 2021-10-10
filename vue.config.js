@@ -1,4 +1,4 @@
 const path = require("path");
 module.exports = {
-  outputDir: path.resolve("../docker-log/public"),
+  outputDir: path.resolve("../docker-logs/public"),
 }
