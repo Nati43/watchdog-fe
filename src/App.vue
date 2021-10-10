@@ -131,7 +131,7 @@ export default {
 	name: 'App',
 	data: ()=>{
 		return {
-			host: 'localhost:3000',
+			host: '',
 			metaSocket: null,
 			meta: null,
 			selected: null,
