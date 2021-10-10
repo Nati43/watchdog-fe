@@ -1,15 +1,30 @@
 <template>
-	<div id="app" class="d-flex align-items-center justify-content-center my-auto">
+
+	<div v-if="!unauthorized" id="app" class="d-flex align-items-center justify-content-center my-auto">
 
         <div 
 			class="d-flex flex-column align-items-center justify-content-center flex-wrap" 
 			style="max-width: 1300px;" >
 
-            <p class="header-1 text-primary py-0 px-0 mb-4"> Containers </p>
-		
+			<p class="header-2 text-primary py-0 px-0 my-3 logo-text"> 
+				Watch..
+				<svg class="mx-2"
+					height="50px"
+					width="34px"
+					version="1.1"
+					viewBox="0 0 234 250"
+					xmlns="http://www.w3.org/2000/svg"
+					xmlns:xlink="http://www.w3.org/1999/xlink" >
+					<g fill="tomato" fill-rule="nonzero" id="logo">
+						<path id="Shape" d="M232.237912,124.63958 L207.054086,87.2418902 L209.962149,5.64164223 C210.078472,3.66415939 209.08973,1.7448378 207.403054,0.756096381 C205.716377,-0.23264504 203.56441,-0.23264504 201.935895,0.814257642 C182.33555,14.540315 137.493219,48.3901684 122.720259,93.0580162 L145.984763,87.2418902 C145.984763,87.2418902 99.1649485,135.22493 81.6002479,210.369278 C81.6002479,210.369278 79.2156363,220.838305 78.5758624,227.875817 C79.4482813,229.911461 80.3788615,232.063428 81.1931191,234.273556 C81.2512804,234.44804 84.1593434,242.29981 85.3807298,246.312937 C86.078665,248.523064 88.1724703,250.093418 90.4989207,250.093418 L143.309345,250.093418 C145.635795,250.093418 147.729601,248.523064 148.427536,246.312937 C168.318687,181.230487 211.416181,170.528815 213.21918,170.179847 C214.847695,169.772718 216.243565,168.609493 216.9415,167.039139 L232.819524,129.757771 C233.517459,128.071095 233.342976,126.093612 232.237912,124.63958 Z M116.904133,221.012788 L99.4557548,191.932158 L134.352511,191.932158 L116.904133,221.012788 Z M160.17611,151.219276 C144.705215,151.219276 134.352511,151.219276 134.352511,151.219276 L180.881519,122.138646 C180.881519,122.138646 175.705167,151.219276 160.17611,151.219276 Z M87.8235028,52.3451341 C76.6565408,64.6753212 45.7147505,105.620848 36.9324002,151.219276 L53.1012305,151.219276 L49.4370711,173.262394 L47.4595883,185.185452 C43.3883,181.812099 35.5365299,176.752069 35.2457236,176.635747 C26.6960184,171.633879 20.7635699,170.238008 20.5890861,170.179847 C18.9605708,169.772718 17.5647006,168.609493 16.8667654,167.039139 L0.988741422,129.757771 C0.290806301,128.071095 0.465290081,126.093612 1.57035402,124.63958 L26.7541797,87.2418902 L23.8461166,5.64164223 C23.7297941,3.48967561 24.8930193,1.4540315 26.8705022,0.523451341 C28.7316625,-0.407128821 31.0581129,-0.0581612601 32.6866282,1.39587024 L87.8235028,52.3451341 Z M99.4557548,151.219276 C99.4557548,151.219276 89.1204989,151.219276 73.6088908,151.219276 C58.0972827,151.219276 52.9267467,122.138646 52.9267467,122.138646 L99.4557548,151.219276 Z" />
+					</g>
+				</svg>
+				..dog
+			</p>
+
 			<b-list-group
 				v-if="meta" 
-				class="d-flex flex-row align-items-center justify-content-center flex-wrap">
+				class="d-flex flex-row align-items-stretch justify-content-center flex-wrap">
 				
 				<b-list-group-item 
 					v-for="(value, key) in meta" 
@@ -17,13 +32,13 @@
 					:key="key" 
 					:active="selected==key" 
 					:class="{'bg-primary': selected==key}" 
-					class="btn d-flex flex-row align-items-start m-2 bg-transparent border border-primary" 
-					style="border-radius: 1em;" >
+					class="btn d-flex flex-row align-items-center m-2 bg-transparent border border-primary" 
+					style="border-radius: 1em; width: 15em;" >
 					<div class="d-flex align-items-center mr-lg-2" style="width:2em; height:2em; border-radius:50%;">
 						<i class="fa fa-microchip w-100" :class="{'text-muted': downlist[key], 'text-success': !downlist[key]}" style="font-size: 1em;"></i>
 					</div>
 					<div class="d-flex flex-column text-left">
-						<span class="h5 my-auto font-weight-bold text-white"> {{parseName(value.name)}} </span>
+						<span class="h5 my-auto font-weight-bold text-white" style=""> {{parseName(value.name)}} </span>
 						<span class="my-auto" :class="{'text-muted': selected!=key, 'text-white': selected==key}" v-text="downlist[key] ? 'Down':'Active'" > </span>
 					</div>
 				</b-list-group-item>
@@ -72,6 +87,41 @@
 		</transition>
 
 	</div>
+	<div v-else id="app" class="d-flex flex-column align-items-stretch justify-content-center my-auto">
+        <div class="form-header shadow"  >
+			<p class="header-2 text-primary py-0 px-0 my-3 logo-text"> 
+				Watch..
+				<svg class="mx-2"
+					height="50px"
+					width="34px"
+					version="1.1"
+					viewBox="0 0 234 250"
+					xmlns="http://www.w3.org/2000/svg"
+					xmlns:xlink="http://www.w3.org/1999/xlink" >
+					<g fill="tomato" fill-rule="nonzero" id="logo">
+						<path id="Shape" d="M232.237912,124.63958 L207.054086,87.2418902 L209.962149,5.64164223 C210.078472,3.66415939 209.08973,1.7448378 207.403054,0.756096381 C205.716377,-0.23264504 203.56441,-0.23264504 201.935895,0.814257642 C182.33555,14.540315 137.493219,48.3901684 122.720259,93.0580162 L145.984763,87.2418902 C145.984763,87.2418902 99.1649485,135.22493 81.6002479,210.369278 C81.6002479,210.369278 79.2156363,220.838305 78.5758624,227.875817 C79.4482813,229.911461 80.3788615,232.063428 81.1931191,234.273556 C81.2512804,234.44804 84.1593434,242.29981 85.3807298,246.312937 C86.078665,248.523064 88.1724703,250.093418 90.4989207,250.093418 L143.309345,250.093418 C145.635795,250.093418 147.729601,248.523064 148.427536,246.312937 C168.318687,181.230487 211.416181,170.528815 213.21918,170.179847 C214.847695,169.772718 216.243565,168.609493 216.9415,167.039139 L232.819524,129.757771 C233.517459,128.071095 233.342976,126.093612 232.237912,124.63958 Z M116.904133,221.012788 L99.4557548,191.932158 L134.352511,191.932158 L116.904133,221.012788 Z M160.17611,151.219276 C144.705215,151.219276 134.352511,151.219276 134.352511,151.219276 L180.881519,122.138646 C180.881519,122.138646 175.705167,151.219276 160.17611,151.219276 Z M87.8235028,52.3451341 C76.6565408,64.6753212 45.7147505,105.620848 36.9324002,151.219276 L53.1012305,151.219276 L49.4370711,173.262394 L47.4595883,185.185452 C43.3883,181.812099 35.5365299,176.752069 35.2457236,176.635747 C26.6960184,171.633879 20.7635699,170.238008 20.5890861,170.179847 C18.9605708,169.772718 17.5647006,168.609493 16.8667654,167.039139 L0.988741422,129.757771 C0.290806301,128.071095 0.465290081,126.093612 1.57035402,124.63958 L26.7541797,87.2418902 L23.8461166,5.64164223 C23.7297941,3.48967561 24.8930193,1.4540315 26.8705022,0.523451341 C28.7316625,-0.407128821 31.0581129,-0.0581612601 32.6866282,1.39587024 L87.8235028,52.3451341 Z M99.4557548,151.219276 C99.4557548,151.219276 89.1204989,151.219276 73.6088908,151.219276 C58.0972827,151.219276 52.9267467,122.138646 52.9267467,122.138646 L99.4557548,151.219276 Z" />
+					</g>
+				</svg>
+				..dog
+			</p>
+        </div>
+
+        <div class="mx-auto border-0 shadow-sm" >
+            <b-input-group  class="my-3">
+                <b-form-input class="bg-transparent border-primary" v-model="pin" type="password" required placeholder="Enter pin"> </b-form-input>
+            </b-input-group>
+            
+            <b-form-invalid-feedback class="text-center" v-if="pinError" :state="false">
+                {{pinError}}
+            </b-form-invalid-feedback>
+        </div>
+
+        <div class="d-flex align-items-center my-3 border-0 shadow-sm">
+            <b-button v-if="!logingIn" variant="outline-primary" class="px-4 m-0 mx-auto" @click="start"> LogIn </b-button>
+            <b-spinner v-else variant="primary" class="mx-auto" small type="grow"></b-spinner>
+        </div>
+	</div>
+	
 </template>
 
 <script>
@@ -93,19 +143,41 @@ export default {
 			key: "",
 			pointer: -1,
 			highlight: [],
-			downlist: {}
+			downlist: {},
+			pin: null,
+			unauthorized: true,
+			logingIn: false,
+			pinError: false,
 		}
 	},
 	mounted() {
-		this.start();
+		// this.start();
 	},
 	methods: {
 		start() {
-			this.metaSocket = io.connect(this.host+'/meta');
+			this.logingIn = true;
+			this.metaSocket = io.connect(this.host+'/meta',{
+				query: "pin=" + this.pin,
+			});
 
-			this.metaSocket.on('connect', () => {});
+			this.metaSocket.on('disconnect', () => { 
+				if(this.logingIn) {
+					this.unauthorized = true;
+					this.logingIn = false; 
+					this.pinError = 'Incorrect pin !'; 
+				}
+			});
+
+			this.metaSocket.on('connect', () => {
+				if(this.logingIn) {
+					this.unauthorized = false;
+					this.logingIn = false;
+					this.pinError = '';
+				}
+			});
 
 			this.metaSocket.on("meta", (meta)=>{
+				meta = this.sort(meta);
 				this.meta = meta;
 				Object.values(this.meta).forEach((container)=>{
 					if(!container.running)
@@ -121,6 +193,7 @@ export default {
 
 			this.metaSocket.on("added", (container)=> {
 				this.meta[container.id] = container;
+				this.meta = this.sort(this.meta);
 				this.$forceUpdate();
 			});
 
@@ -185,6 +258,9 @@ export default {
 			});
 		},
 		changeSelected(key) {
+			this.pointer = -1;
+			this.highlight= [];
+			this.key = "";
 			if(this.selected) {
 				this.socket.disconnect();
 				this.socket = null;
@@ -250,6 +326,27 @@ export default {
 			var el = document.getElementById(this.highlight[this.pointer]);
 			el.scrollIntoView(true);
 			el.parentElement.scrollTop -= 75;
+		},
+		sort(meta) {
+			var sortable = [];
+			// Convert to array
+			Object.values(meta).forEach((container)=>{
+				sortable.push(container);
+			});
+			// Sort
+			sortable.sort((a, b) => {
+				if ( a.name < b.name )
+					return -1;
+				if ( a.name > b.name )
+					return 1;
+				return 0;
+			});
+			// Convert back
+			meta = {}
+			sortable.forEach(container => {
+				meta[container.id] = container;
+			});
+			return meta
 		}
 	}
 }
@@ -277,53 +374,52 @@ body {
 <style>
 /* Fonts */
 .header-1 {
-  font-family: 'Lato';
-  font-weight: 900;
-  font-size: 2.5em;
+	font-family: 'Lato';
+	font-weight: 900;
+	font-size: 2.5em;
 }
 .header-2 {
-  font-family: 'Lato';
-  font-weight: 900;
-  font-size: 1.25em;
+	font-family: 'Lato';
+	font-weight: 900;
+	font-size: 1.25em;
 }
 </style>
 <style>
 /* Colors */
 .text-primary {
-  color: #5874c9 !important;
+	color: #5874c9 !important;
 }
 .bg-primary {
-  background-color: #5874c9 !important;
+	background-color: #5874c9 !important;
 }
 .bg-primary-gradient {
-  background: linear-gradient(120deg, #5874c9 30%, #90CAF9);
+	background: linear-gradient(120deg, #5874c9 30%, #90CAF9);
 }
 .border-light-custom{
-  border-color: #2c3e50;
-
+	border-color: #2c3e50;
 }
 </style>
 <style> 
 /* Animation */
 .bounce-enter-active {
-  animation: bounce-in .5s;
+	animation: bounce-in .5s;
 }
 .bounce-leave-active {
-  animation: bounce-in .5s reverse;
+	animation: bounce-in .5s reverse;
 }
 @keyframes bounce-in {
-  0% {
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
+	0% {
+		transform: scale(0);
+	}
+	50% {
+		transform: scale(1.1);
+	}
+	100% {
+		transform: scale(1);
+	}
 }
 .bounce-modal.show {
-    animation: bounce-in .5s;
+	animation: bounce-in .5s;
 }
 .maximized * {
 	max-width: unset !important; 
@@ -338,19 +434,19 @@ body {
 	height: 70vh !important;
 }
 @keyframes heartbeat {
-  0% {
-	transform: scale(.99);
-  }
-  50% {
-    transform: scale(1.01);
-  }
-  100% {
-    transform: scale(.99);
-  }
+	0% {
+		transform: scale(.99);
+	}
+	50% {
+		transform: scale(1.01);
+	}
+	100% {
+		transform: scale(.99);
+	}
 }
 .beat {
 	color: tomato;
-    animation: heartbeat .75s infinite;
+	animation: heartbeat .75s infinite;
 }
 .bg-mark {
 	background: #FF5722;
@@ -358,10 +454,29 @@ body {
 	font-weight: bold;
 }
 .bg-highlight {
-	/* background: #5874c9; */
 	background: #0005;
 	color: white;
 	animation: heartbeat 1s infinite;
 }
-
+.logo-text {
+	background: linear-gradient(to right, #5874c9, #FF5722, #5874c9);
+	-webkit-background-clip: text;
+	-moz-background-clip: text;
+	-ms-background-clip: text;
+	background-clip: text;
+	background-size: 200% 200%;
+	-webkit-text-fill-color: transparent;
+  	animation: logo-text-move ease 5s infinite;
+}
+@keyframes logo-text-move {
+	0%{
+		background-position:0% 0%;
+	}
+    50%{
+		background-position:100% 100%;
+	}
+    100%{
+		background-position:200% 200%;
+	}
+}
 </style>

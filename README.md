@@ -1,4 +1,4 @@
-# docker-logs-frontend
+# watchdog-frontend
 
 ## Project setup
 ```
