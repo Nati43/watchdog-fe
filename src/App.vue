@@ -17,19 +17,32 @@
 					:key="key" 
 					:active="selected==key" 
 					:class="{'bg-primary': selected==key}" 
-					class="btn d-flex flex-row align-items-center m-2 bg-transparent border border-primary" 
-					style="border-radius: 1em" >
-					<div class="d-flex align-items-center mr-lg-2" style="width:4em; height:4em; border-radius:50%;">
-						<i class="fa fa-microchip w-100" :class="{'text-light': selected==key, 'text-primary': selected!=key}" style="font-size: 2.5em;"></i>
+					class="btn d-flex flex-row align-items-start m-2 bg-transparent border border-primary" 
+					style="border-radius: 1em;" >
+					<div class="d-flex align-items-center mr-lg-2" style="width:2em; height:2em; border-radius:50%;">
+						<i class="fa fa-microchip w-100" :class="{'text-muted': downlist[key], 'text-success': !downlist[key]}" style="font-size: 1em;"></i>
 					</div>
-					<span class="h5 my-auto font-weight-bold" :class="{'text-muted': selected!=key}"> {{parseName(value.name)}} </span>
+					<div class="d-flex flex-column text-left">
+						<span class="h5 my-auto font-weight-bold text-white"> {{parseName(value.name)}} </span>
+						<span class="my-auto" :class="{'text-muted': selected!=key, 'text-white': selected==key}" v-text="downlist[key] ? 'Down':'Active'" > </span>
+					</div>
 				</b-list-group-item>
 
 			</b-list-group>
 		</div>
 
 		<transition name="bounce" >
-			<div v-if="selected" :class="{'maximized': maximized}" class="terminal mx-5 d-flex flex-column shadow" style="min-width:50vw; max-width:800px; max-height:600px; overflow:hidden; border-radius:.75em;" >
+			<div v-if="selected" :class="{'maximized': maximized}" class="mx-5 d-flex flex-column shadow" style="min-width:50vw; max-width:800px; max-height:600px; overflow:hidden; border-radius:.75em;" >
+				<b-input-group 
+					style="width: unset;" 
+					class="ml-auto mr-5 my-3" >
+					<template #append>
+							<i v-if="highlight.length" @click="findNext" class="btn rounded-circle mx-1 fa fa-arrow-down font-weight-bold my-auto" :class="{'text-white': key}"></i>
+							<i v-if="highlight.length" @click="findPrev" class="btn rounded-circle mx-1 fa fa-arrow-up font-weight-bold my-auto" :class="{'text-white': key}"></i>
+					</template>
+					<b-form-input @keypress.enter="mark" v-model="key" placeholder="Search" class="bg-transparent border-0 mx-2" :class="{'text-white': key}"></b-form-input>
+				</b-input-group>
+
 				<div class="d-flex shadow" style="background:#181818; padding: .85em;">
 					<div @click="changeSelected(null)" class="mx-1 rounded-circle bg-danger d-flex" style="height:1em;width:1em" >
 						<i class="fa fa-close font-weight-bold text-white mx-auto my-auto" style="font-size:.5em;"></i>
@@ -45,7 +58,15 @@
 				<pre
 					id="console"
 					style="min-width:50vw; max-width:800px; max-height:600px; overflow:auto; list-style:none; background:#1c1c1c;"
-					class="p-5 m-0 text-white text-left d-block" >
+					class="terminal p-5 m-0 text-white text-left d-block" >
+					<li 
+						:id="idx" 
+						v-for="(line, idx) in lines" 
+						:key="idx" 
+						:class="{'bg-highlight': highlight[pointer] == idx}"
+						v-html="highlight && highlight.indexOf(idx)==-1 ? line : line.replace(key, '<span class=\'bg-mark\'>'+key+'</span>')">
+					</li>
+					<li style="color: tomato; margin-left:-1em; margin-bottom:-2em;" v-if="downlist[selected]">Service is down ...!</li>
 				</pre>
 			</div>
 		</transition>
@@ -68,6 +89,11 @@ export default {
 			maximized: false,
 			removeCounter: 5,
 			removing: null,
+			lines: [],
+			key: "",
+			pointer: -1,
+			highlight: [],
+			downlist: {}
 		}
 	},
 	mounted() {
@@ -81,6 +107,16 @@ export default {
 
 			this.metaSocket.on("meta", (meta)=>{
 				this.meta = meta;
+				Object.values(this.meta).forEach((container)=>{
+					if(!container.running)
+						this.downlist[container.id] = true;
+				});
+				this.$forceUpdate();
+			});
+
+			this.metaSocket.on("down", (containerID)=> {
+				this.downlist[containerID] = true;
+				this.$forceUpdate();
 			});
 
 			this.metaSocket.on("added", (container)=> {
@@ -111,48 +147,48 @@ export default {
 			});
 		},
 		subscribe() {
+			this.lines = [];
+			this.$forceUpdate();
+			
 			this.socket = io.connect(this.host+'/'+this.selected);
 
 			this.socket.on('connect', () => {});
 
 			this.socket.on(this.selected+"-init", (data) => {
-				document.getElementById('console').innerHTML = "";
+				if(this.downlist[this.selected]) {
+					this.downlist[this.selected] = false;
+					$this.$forceUpdate();
+				}
 				data.forEach(line => {
-					var item = document.createElement('li');
 					var log;
 					try {
 						log = JSON.parse(line).log;
-					}catch (err) {
+					} catch (err) {
 						log = line;
 					}
-					item.innerHTML = this.parser.toHtml(log);
-					document.getElementById('console').appendChild(item);
-					document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+					this.lines.push(this.parser.toHtml(log));
+					this.$forceUpdate();
 				});
+				setTimeout(()=>{
+					document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+				}, 50);
 			});
 
 			this.socket.on(this.selected+"-line", (line) => {
-				var item = document.createElement('li');
-				item.innerHTML = this.parser.toHtml(line);
-				document.getElementById('console').appendChild(item);
-				document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
-			});
-
-			this.socket.on(this.selected+"-down", () => {
-				var item = document.createElement('li');
-				item.style.color = "tomato";
-				item.innerHTML = "Service is down...";
-				document.getElementById('console').appendChild(item);
+				if(this.downlist[this.selected]) {
+					this.downlist[this.selected] = false;
+					$this.$forceUpdate();
+				}
+				this.lines.push(this.parser.toHtml(line));
+				this.$forceUpdate();
 				document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
 			});
 		},
 		changeSelected(key) {
 			if(this.selected) {
-				let selected = this.selected;
+				this.socket.disconnect();
+				this.socket = null;
 				this.selected = null;
-				this.socket.emit('unsubscribe', {containerID: selected});
-				this.socket.removeAllListeners(selected+'-init');
-				this.socket.removeAllListeners(selected+'-line');
 				setTimeout(()=>{
 					this.selected = key;
 					if(this.selected)
@@ -178,6 +214,42 @@ export default {
 					name = parts.slice(1, parts.length-1);
 			}
 			return name.join("-");
+		},
+		mark() {
+			this.highlight = [];
+			if(this.key.trim().length) {
+				this.lines.forEach((line, idx) => {
+					if(line.toString().includes(this.key)) {
+						this.highlight.push(idx);
+					}
+				});
+			}
+		},
+		findNext() {
+			if(this.pointer == -1)
+				this.pointer = 0;
+			else
+				this.pointer++;
+
+			if(this.pointer >= this.highlight.length)
+				this.pointer = 0;
+
+			var el = document.getElementById(this.highlight[this.pointer]);
+			el.scrollIntoView(true);
+			el.parentElement.scrollTop -= 75;
+		},
+		findPrev() {
+			if(this.pointer == -1)
+				this.pointer = this.highlight.length - 1;
+			else
+				this.pointer--;
+
+			if(this.pointer < 0)
+				this.pointer = this.highlight.length - 1;
+
+			var el = document.getElementById(this.highlight[this.pointer]);
+			el.scrollIntoView(true);
+			el.parentElement.scrollTop -= 75;
 		}
 	}
 }
@@ -267,19 +339,29 @@ body {
 }
 @keyframes heartbeat {
   0% {
-	color: white;
 	transform: scale(.99);
   }
   50% {
-	color: tomato;
     transform: scale(1.01);
   }
   100% {
-	color: white;
     transform: scale(.99);
   }
 }
 .beat {
+	color: tomato;
     animation: heartbeat .75s infinite;
 }
+.bg-mark {
+	background: #FF5722;
+	color: white;
+	font-weight: bold;
+}
+.bg-highlight {
+	/* background: #5874c9; */
+	background: #0005;
+	color: white;
+	animation: heartbeat 1s infinite;
+}
+
 </style>
