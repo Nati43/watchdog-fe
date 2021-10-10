@@ -1,5 +1,5 @@
 <template>
-	<div id="app" class="d-flex align-items-center justify-content-center">
+	<div id="app" class="d-flex align-items-center justify-content-center my-auto">
 
         <div 
 			class="d-flex flex-column align-items-center justify-content-center flex-wrap" 
@@ -22,7 +22,7 @@
 					<div class="d-flex align-items-center mr-lg-2" style="width:4em; height:4em; border-radius:50%;">
 						<i class="fa fa-microchip w-100" :class="{'text-light': selected==key, 'text-primary': selected!=key}" style="font-size: 2.5em;"></i>
 					</div>
-					<span class="h5 my-auto font-weight-bold" :class="{'text-muted': selected!=key}"> {{toTitleCase(value.name)}} </span>
+					<span class="h5 my-auto font-weight-bold" :class="{'text-muted': selected!=key}"> {{parseName(value.name)}} </span>
 				</b-list-group-item>
 
 			</b-list-group>
@@ -40,7 +40,7 @@
 
 					<span v-if="removing" class="ml-3 my-auto beat"> Container removed. Closing in ... {{ removeCounter }} </span>
 					
-					<span class="ml-auto mr-3 my-auto text-white" > Service log - <span class="font-weight-bold" v-if="meta[selected]"> {{ toTitleCase(meta[selected].name) }} </span> </span>
+					<span class="ml-auto mr-3 my-auto text-white" > Service log - <span class="font-weight-bold" v-if="meta[selected]"> {{ parseName(meta[selected].name) }} </span> </span>
 				</div>
 				<pre
 					id="console"
@@ -75,26 +75,20 @@ export default {
 	},
 	methods: {
 		start() {
-			console.log("Starting client...");
 			this.metaSocket = io.connect(this.host+'/meta');
 
-			this.metaSocket.on('connect', ()=>{
-				console.log('Connected to log server...');
-			});
+			this.metaSocket.on('connect', () => {});
 
 			this.metaSocket.on("meta", (meta)=>{
-				console.log("Meta received: ", meta);
 				this.meta = meta;
 			});
 
 			this.metaSocket.on("added", (container)=> {
-				console.log("Added: ", container);
 				this.meta[container.id] = container;
 				this.$forceUpdate();
 			});
 
 			this.metaSocket.on("removed", (containerID)=> {
-				console.log("Removed: ", containerID);
 				if(this.socket) {
 					this.socket.emit('unsubscribe');
 					this.socket.removeAllListeners(containerID+'-init');
@@ -117,12 +111,9 @@ export default {
 			});
 		},
 		subscribe() {
-			console.log("Starting client...");
 			this.socket = io.connect(this.host+'/'+this.selected);
 
-			this.socket.on('connect', ()=>{
-				console.log('Connected to log server...');
-			});
+			this.socket.on('connect', () => {});
 
 			this.socket.on(this.selected+"-init", (data) => {
 				document.getElementById('console').innerHTML = "";
@@ -147,12 +138,12 @@ export default {
 				document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
 			});
 
-			this.socket.on(this.selected+"-error", (err) => {
+			this.socket.on(this.selected+"-down", () => {
 				var item = document.createElement('li');
-				item.innerHTML = this.parser.toHtml(err);
+				item.style.color = "tomato";
+				item.innerHTML = "Service is down...";
 				document.getElementById('console').appendChild(item);
 				document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
-				this.socket.emit('unsubscribe');
 			});
 		},
 		changeSelected(key) {
@@ -174,6 +165,19 @@ export default {
         },
 		toTitleCase(str) {
 			return str.replace(/\w\S*/g, (txt) => { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase() });
+		},
+		parseName(fullname) {
+			var name = fullname;
+			if(fullname.split('_').length > 1) {
+				var parts = fullname.split('_');
+				if(parts.length == 2)
+					name = parts[0];
+				else if(parts.length == 3)
+					name = parts[1];
+				else(parts.length > 3)
+					name = parts.slice(1, parts.length-1);
+			}
+			return name.join("-");
 		}
 	}
 }
@@ -183,6 +187,11 @@ export default {
 html,
 body {
 	background-color: #121212;
+	min-height: 100vh;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
 }
 #app {
 	font-family: Helvetica, Arial, sans-serif;
