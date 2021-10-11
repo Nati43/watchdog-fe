@@ -132,7 +132,7 @@ export default {
 	data: ()=>{
 		return {
 			host: '',
-			metaSocket: null,
+			Socket: null,
 			meta: null,
 			selected: null,
 			parser: new Convert(),
@@ -151,16 +151,16 @@ export default {
 		}
 	},
 	mounted() {
-		// this.start();
+
 	},
 	methods: {
 		start() {
 			this.logingIn = true;
-			this.metaSocket = io.connect(this.host+'/meta',{
+			this.Socket = io.connect(this.host+'/meta',{
 				query: "pin=" + this.pin,
 			});
 
-			this.metaSocket.on('disconnect', () => { 
+			this.Socket.on('disconnect', () => { 
 				if(this.logingIn) {
 					this.unauthorized = true;
 					this.logingIn = false; 
@@ -168,7 +168,7 @@ export default {
 				}
 			});
 
-			this.metaSocket.on('connect', () => {
+			this.Socket.on('connect', () => {
 				if(this.logingIn) {
 					this.unauthorized = false;
 					this.logingIn = false;
@@ -176,7 +176,7 @@ export default {
 				}
 			});
 
-			this.metaSocket.on("meta", (meta)=>{
+			this.Socket.on("meta", (meta)=>{
 				meta = this.sort(meta);
 				this.meta = meta;
 				Object.values(this.meta).forEach((container)=>{
@@ -186,23 +186,28 @@ export default {
 				this.$forceUpdate();
 			});
 
-			this.metaSocket.on("down", (containerID)=> {
+			this.Socket.on("down", (containerID)=> {
 				this.downlist[containerID] = true;
 				this.$forceUpdate();
 			});
 
-			this.metaSocket.on("added", (container)=> {
+			this.Socket.on("up", (containerID)=> {
+				this.downlist[containerID] = false;
+				this.$forceUpdate();
+			});
+
+			this.Socket.on("added", (container)=> {
 				this.meta[container.id] = container;
 				this.meta = this.sort(this.meta);
 				this.$forceUpdate();
 			});
 
-			this.metaSocket.on("removed", (containerID)=> {
-				if(this.socket) {
-					this.socket.emit('unsubscribe');
-					this.socket.removeAllListeners(containerID+'-init');
-					this.socket.removeAllListeners(containerID+'-line');
-				}
+			this.Socket.on("removed", (containerID)=> {
+				this.Socket.emit(containerID+'-unsubscribe');
+				this.Socket.removeAllListeners(containerID+'-init');
+				this.Socket.removeAllListeners(containerID+'-line');
+				this.Socket.removeAllListeners(containerID+'-subscribed');
+				this.Socket.removeAllListeners(containerID+'-unsubscribed');
 				if(this.selected == containerID) {
 					var handle = setInterval(() => {
 						this.removing = this.selected;
@@ -220,56 +225,53 @@ export default {
 			});
 		},
 		subscribe() {
-			this.lines = [];
-			this.$forceUpdate();
-			
-			this.socket = io.connect(this.host+'/'+this.selected);
+			this.Socket.emit(this.selected+'-subscribe');
 
-			this.socket.on('connect', () => {});
-
-			this.socket.on(this.selected+"-init", (data) => {
-				if(this.downlist[this.selected]) {
-					this.downlist[this.selected] = false;
-					$this.$forceUpdate();
-				}
-				data.forEach(line => {
-					var log;
-					try {
-						log = JSON.parse(line).log;
-					} catch (err) {
-						log = line;
-					}
-					this.lines.push(this.parser.toHtml(log));
-					this.$forceUpdate();
+			this.Socket.on(this.selected+'-subscribed', () => {
+				this.Socket.on(this.selected+"-init", (data) => {
+					data.forEach(line => {
+						var log;
+						try {
+							log = JSON.parse(line).log;
+						} catch (err) {
+							log = line;
+						}
+						this.lines.push(this.parser.toHtml(log));
+						this.$forceUpdate();
+					});
+					setTimeout(()=>{
+						document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+					}, 50);
 				});
-				setTimeout(()=>{
+	
+				this.Socket.on(this.selected+"-line", (line) => {
+					this.lines.push(this.parser.toHtml(line));
+					this.$forceUpdate();
 					document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
-				}, 50);
-			});
-
-			this.socket.on(this.selected+"-line", (line) => {
-				if(this.downlist[this.selected]) {
-					this.downlist[this.selected] = false;
-					$this.$forceUpdate();
-				}
-				this.lines.push(this.parser.toHtml(line));
-				this.$forceUpdate();
-				document.getElementById('console').scrollTop = document.getElementById('console').scrollHeight;
+				});
 			});
 		},
 		changeSelected(key) {
 			this.pointer = -1;
 			this.highlight= [];
 			this.key = "";
+			this.lines = [];
+			this.$forceUpdate();
 			if(this.selected) {
-				this.socket.disconnect();
-				this.socket = null;
-				this.selected = null;
-				setTimeout(()=>{
-					this.selected = key;
-					if(this.selected)
-						this.subscribe();
-				}, 50);
+				this.Socket.emit(this.selected+'-unsubscribe');
+				this.Socket.on(this.selected+'-unsubscribed', () => {
+					this.Socket.removeAllListeners(this.selected+'-init');
+					this.Socket.removeAllListeners(this.selected+'-line');
+					this.Socket.removeAllListeners(this.selected+'-subscribed');
+					this.Socket.removeAllListeners(this.selected+'-unsubscribed');
+					this.selected = null;
+					setTimeout(() => {
+						this.selected = key;
+						if(this.selected) {
+							this.subscribe();
+						}
+					}, 50);
+				});
 			}else {
 				this.selected = key;
 				this.subscribe();
