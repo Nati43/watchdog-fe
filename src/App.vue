@@ -1,10 +1,11 @@
 <template>
 
-	<div v-if="!unauthorized" id="app" class="d-flex align-items-center justify-content-center my-auto">
+	<div v-if="!unauthorized" id="app" class="d-flex flex-wrap align-items-center justify-content-center my-auto">
 
         <div 
-			class="d-flex flex-column align-items-center justify-content-center flex-wrap" 
-			style="max-width: 1300px;" >
+			class="flex-column align-items-center justify-content-center flex-wrap" 
+			:class="{'d-none d-lg-flex': selected, 'd-flex': !selected}"
+			style="max-width:50em;" >
 
 			<p class="header-2 text-primary py-0 px-0 my-3 logo-text"> 
 				Watch..
@@ -32,8 +33,8 @@
 					:key="key" 
 					:active="selected==key" 
 					:class="{'bg-primary': selected==key}" 
-					class="btn d-flex flex-row align-items-center m-2 bg-transparent border border-primary" 
-					style="border-radius: 1em; width: 15em;" >
+					class="btn d-flex flex-row align-items-center m-2 " 
+					style="border-radius: 1em; width: 15em; background-color:#1d1d1d;" >
 					<div class="d-flex align-items-center mr-lg-2" style="width:2em; height:2em; border-radius:50%;">
 						<i class="fa fa-microchip w-100" :class="{'text-muted': downlist[key], 'text-success': !downlist[key]}" style="font-size: 1em;"></i>
 					</div>
@@ -47,7 +48,11 @@
 		</div>
 
 		<transition name="bounce" >
-			<div v-if="selected" :class="{'maximized': maximized}" class="mx-5 d-flex flex-column shadow" style="min-width:50vw; max-width:800px; max-height:600px; overflow:hidden; border-radius:.75em;" >
+			<div 
+				v-if="selected" 
+				:class="{'maximized': maximized}" 
+				class="mx-5 d-flex flex-column shadow" 
+				style="min-width:50vw; max-width:650px; max-height:650px; overflow:hidden; border-radius:.75em;" >
 				<b-input-group 
 					style="width: unset;" 
 					class="ml-auto mr-5 my-3" >
@@ -72,7 +77,7 @@
 				</div>
 				<pre
 					id="console"
-					style="min-width:50vw; max-width:800px; max-height:600px; overflow:auto; list-style:none; background:#1c1c1c;"
+					style="width:100%; height:100%; overflow:auto; list-style:none; background:#1c1c1c;"
 					class="terminal p-5 m-0 text-white text-left d-block" >
 					<li 
 						:id="idx" 
@@ -87,9 +92,13 @@
 		</transition>
 
 	</div>
-	<div v-else id="app" class="d-flex flex-column align-items-stretch justify-content-center my-auto">
-        <div class="form-header shadow"  >
-			<p class="header-2 text-primary py-0 px-0 my-3 logo-text"> 
+	<div 
+		v-else 
+		id="app" 
+		class="d-flex flex-column align-items-stretch justify-content-cente my-auto shadow p-5" 
+		style="background:#171717; border-radius:1em;" >
+        <div class="form-header px-4 py-0 my-3" >
+			<p class="header-2 text-primary px-0 py-0 logo-text"> 
 				Watch..
 				<svg class="mx-2"
 					height="50px"
@@ -106,19 +115,19 @@
 			</p>
         </div>
 
-        <div class="mx-auto border-0 shadow-sm" >
-            <b-input-group  class="my-3">
-                <b-form-input class="bg-transparent border-primary" v-model="pin" type="password" required placeholder="Enter pin"> </b-form-input>
+        <div class="mx-auto border-0 shadow-sm mb-4 py-0" >
+            <b-input-group >
+                <b-form-input class="p-4 border-0" style="background: #1d1d1d;" v-model="pin" type="password" required placeholder="Enter pin"> </b-form-input>
             </b-input-group>
             
-            <b-form-invalid-feedback class="text-center" v-if="pinError" :state="false">
+            <b-form-invalid-feedback class="text-center mt-3 mb-0 font-weight-bold" v-if="pinError" :state="false">
                 {{pinError}}
             </b-form-invalid-feedback>
         </div>
 
-        <div class="d-flex align-items-center my-3 border-0 shadow-sm">
-            <b-button v-if="!logingIn" variant="outline-primary" class="px-4 m-0 mx-auto" @click="start"> LogIn </b-button>
-            <b-spinner v-else variant="primary" class="mx-auto" small type="grow"></b-spinner>
+        <div class="d-flex align-items-center my-4 py-0 border-0 shadow-sm">
+            <b-button v-if="!logingIn" class="px-3 py-1 m-0 mx-auto login-btn" @click="start"> LogIn </b-button>
+            <b-spinner v-else class="mx-auto bg-primary" small type="grow"></b-spinner>
         </div>
 	</div>
 	
@@ -400,6 +409,15 @@ body {
 .border-light-custom{
 	border-color: #2c3e50;
 }
+.login-btn {
+	border: 1px solid #5874c9 !important;
+	color: #5874c9 !important;
+	background: unset !important;
+}
+.login-btn:hover {
+	background: #5874c9 !important;
+	color: white !important;
+}
 </style>
 <style> 
 /* Animation */
@@ -480,5 +498,24 @@ body {
     100%{
 		background-position:200% 200%;
 	}
+}
+</style>
+<style scoped>
+/* Firefox */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #aaa4 #0000;
+}
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+	width: 4px;
+	height: 4px;
+}
+*::-webkit-scrollbar-track {
+	background: #0000;
+}
+*::-webkit-scrollbar-thumb {
+	background-color: #aaa4;
+	border-radius: 5em;
 }
 </style>
