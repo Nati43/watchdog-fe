@@ -117,7 +117,7 @@
 
         <div class="mx-auto border-0 shadow-sm mb-4 py-0" >
             <b-input-group >
-                <b-form-input class="p-4 border-0" style="background: #1d1d1d;" v-model="pin" type="password" required placeholder="Enter pin"> </b-form-input>
+                <b-form-input class="p-4 border-0 font-weight-bold text-white" style="background: #1d1d1d;" v-model="pin" type="password" required placeholder="Enter pin"> </b-form-input>
             </b-input-group>
             
             <b-form-invalid-feedback class="text-center mt-3 mb-0 font-weight-bold" v-if="pinError" :state="false">
@@ -300,7 +300,10 @@ export default {
 				else(parts.length > 3)
 					name = parts.slice(1, parts.length-1);
 			}
-			return name.join("-");
+			if(name.constructor === Array)
+				return name.join("-").replace(/^\/+/, '');
+			else
+				return name.replace(/^\/+/, '');
 		},
 		mark() {
 			this.highlight = [];
