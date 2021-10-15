@@ -57,10 +57,11 @@
 					style="width: unset;" 
 					class="ml-auto mr-5 my-3" >
 					<template #append>
-							<i v-if="highlight.length" @click="findNext" class="btn rounded-circle mx-1 fa fa-arrow-down font-weight-bold my-auto" :class="{'text-white': key}"></i>
-							<i v-if="highlight.length" @click="findPrev" class="btn rounded-circle mx-1 fa fa-arrow-up font-weight-bold my-auto" :class="{'text-white': key}"></i>
+						<span @click="caseSensitive=!caseSensitive;mark()" class="btn rounded-circle mx-1 font-weight-bold my-auto" :class="{'text-white': caseSensitive, 'text-muted': !caseSensitive}">Aa</span>
+						<i v-if="highlight.length" @click="findNext" class="btn rounded-circle mx-1 fa fa-arrow-down font-weight-bold my-auto" :class="{'text-white': key}"></i>
+						<i v-if="highlight.length" @click="findPrev" class="btn rounded-circle mx-1 fa fa-arrow-up font-weight-bold my-auto" :class="{'text-white': key}"></i>
 					</template>
-					<b-form-input @keypress.enter="mark" v-model="key" placeholder="Search" class="bg-transparent border-0 mx-2" :class="{'text-white': key}"></b-form-input>
+					<b-form-input @keypress.enter="mark()" v-model="key" placeholder="Search" class="bg-transparent border-0 mx-2" :class="{'text-white': key}"></b-form-input>
 				</b-input-group>
 
 				<div class="d-flex shadow" style="background:#181818; padding: .85em;">
@@ -84,7 +85,7 @@
 						v-for="(line, idx) in lines" 
 						:key="idx" 
 						:class="{'bg-highlight': highlight[pointer] == idx}"
-						v-html="highlight && highlight.indexOf(idx)==-1 ? line : line.replace(key, '<span class=\'bg-mark\'>'+key+'</span>')">
+						v-html="highlight && highlight.indexOf(idx)==-1 ? line : line.replace(toRegex(markKey), '<span class=\'bg-mark\'>$&</span>')">
 					</li>
 					<li style="color: tomato; margin-left:-1em; margin-bottom:-2em;" v-if="downlist[selected]">Service is down ...!</li>
 				</pre>
@@ -150,6 +151,7 @@ export default {
 			removing: null,
 			lines: [],
 			key: "",
+			markKey: "",
 			pointer: -1,
 			highlight: [],
 			downlist: {},
@@ -157,6 +159,7 @@ export default {
 			unauthorized: true,
 			logingIn: false,
 			pinError: false,
+			caseSensitive: false,
 		}
 	},
 	mounted() {
@@ -307,12 +310,21 @@ export default {
 		},
 		mark() {
 			this.highlight = [];
+			this.markKey = "";
 			if(this.key.trim().length) {
 				this.lines.forEach((line, idx) => {
-					if(line.toString().includes(this.key)) {
-						this.highlight.push(idx);
-					}
+					if(line.match(this.toRegex(this.key)))
+							this.highlight.push(idx);
 				});
+				this.markKey = this.key;
+			}
+			this.$forceUpdate();
+		},
+		toRegex(key) {
+			if(this.caseSensitive) {
+				return new RegExp(`${key}`,"g");
+			}else {
+				return new RegExp(`${key}`,"gi");
 			}
 		},
 		findNext() {
