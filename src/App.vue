@@ -37,6 +37,7 @@
 					style="border-radius: 1em; width: 15em; background-color:#1d1d1d;" >
 					<div class="d-flex align-items-center mr-lg-2" style="width:2em; height:2em; border-radius:50%;">
 						<i class="fa fa-microchip w-100" :class="{
+							'text-light': value.state=='starting',
 							'text-success': value.state=='running',
 							'text-muted': ['exited', 'dead'].includes(value.state), 
 							'text-warning': value.state=='restarting',
@@ -81,7 +82,7 @@
 					<span v-if="removing" class="ml-3 my-auto beat"> Container removed. Closing in ... {{ removeCounter }} </span>
 
 					<div class="ml-auto mr-3">
-						<div class="d-flex" v-if="meta[selected].state != 'restarting'">
+						<div class="d-flex" v-if="meta[selected].state != 'restarting' && !removing">
 							<span class="btn btn-outline-light mx-2" v-if="!['running', 'removing'].includes(meta[selected].state)" @click="Socket.emit(selected+'-start')">Start</span>
 							<span class="btn btn-outline-light mx-2" v-if="meta[selected].state == 'running'" @click="Socket.emit(selected+'-restart')">Restart</span>
 							<span class="btn btn-outline-light mx-2" v-if="meta[selected].state == 'running'" @click="Socket.emit(selected+'-stop')">Stop</span>
@@ -206,28 +207,12 @@ export default {
 			this.Socket.on("meta", (meta)=>{
 				meta = this.sort(meta);
 				this.meta = meta;
-				// Object.values(this.meta).forEach((container)=>{
-				// 	if(container.state != 'running')
-				// 		this.downlist[container.id] = true;
-				// });
 				this.$forceUpdate();
 			});
 
-			// this.Socket.on("down", (containerID)=> {
-			// 	this.downlist[containerID] = true;
-			// 	this.$forceUpdate();
-			// });
-
-			// this.Socket.on("up", (containerID)=> {
-			// 	this.downlist[containerID] = false;
-			// 	this.$forceUpdate();
-			// });
 			this.Socket.on("state-change", (data)=> {
-				this.meta[data.id].state = data.state;
-				// if(this.data.state == 'running')
-				// 	this.downlist[containerID] = false;
-				// else
-				// 	this.downlist[containerID] = true;
+				if(this.meta[data.id])
+					this.meta[data.id].state = data.state;
 				this.$forceUpdate();
 			});
 
@@ -252,10 +237,11 @@ export default {
 							this.removeCounter = 5;
 							this.removing = null;
 							this.selected = null;
+							delete this.meta[containerID];
 						}
 					}, 1000);
-				}
-				delete this.meta[containerID];
+				} else
+					delete this.meta[containerID];
 				this.$forceUpdate();
 			});
 		},
@@ -316,20 +302,6 @@ export default {
 			return str.replace(/\w\S*/g, (txt) => { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase() });
 		},
 		parseName(fullname) {
-			// var name = fullname;
-			// if(fullname.split('_').length > 1) {
-			// 	var parts = fullname.split('_');
-			// 	if(parts.length == 2)
-			// 		name = parts[0];
-			// 	else if(parts.length == 3)
-			// 		name = parts[1];
-			// 	else(parts.length > 3)
-			// 		name = parts.slice(1, parts.length-1);
-			// }
-			// if(name.constructor === Array)
-			// 	return name.join("-").replace(/^\/+/, '');
-			// else
-			// 	return name.replace(/^\/+/, '');
 			let nameParts = fullname.split('/').filter(x => x.length > 0);
 			let name = nameParts.join('-');
 			return name.length > 15 ? name.substring(0, 15)+'..' : name;
