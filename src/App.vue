@@ -201,6 +201,7 @@ export default {
 					this.unauthorized = false;
 					this.logingIn = false;
 					this.pinError = '';
+					this.Socket.emit('meta');
 				}
 			});
 
